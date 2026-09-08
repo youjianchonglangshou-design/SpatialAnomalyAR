@@ -1,47 +1,12 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.183.2/build/three.module.js'
 
 const palettes = [
-  [0x72f7ff, 0xc879ff, 0xffffff],
-  [0xff6db1, 0x7b7dff, 0xd7f5ff],
-  [0xffb85a, 0xff4f8b, 0x7af7d4],
-  [0xb8ff6a, 0x49d7ff, 0xe9fff2],
-  [0xff5d5d, 0x8d63ff, 0xf2eaff],
+  [0x42efff, 0xcd63ff, 0xffffff],
+  [0xff4fa3, 0x6c78ff, 0xe9fbff],
+  [0xffa43a, 0xff397d, 0x6dffe0],
+  [0x9cff45, 0x25cfff, 0xf5fff1],
+  [0xff4242, 0x8056ff, 0xfff1ff],
 ]
-
-const vertexShader = /* glsl */`
-  uniform float uTime;
-  uniform float uSeed;
-  varying float vPulse;
-  varying vec3 vNormal;
-
-  void main() {
-    vec3 p = position;
-    float a = sin((p.x * 4.1 + p.y * 3.3 + p.z * 5.2) + uTime * 1.7 + uSeed);
-    float b = sin(length(p.xy) * 9.0 - uTime * 2.25 + uSeed * 1.37);
-    float c = sin((p.x - p.z) * 7.0 + uTime * 1.05);
-    float displacement = (a * 0.055) + (b * 0.04) + (c * 0.025);
-    p += normal * displacement;
-    vPulse = displacement;
-    vNormal = normal;
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
-  }
-`
-
-const fragmentShader = /* glsl */`
-  uniform vec3 uColorA;
-  uniform vec3 uColorB;
-  uniform float uTime;
-  varying float vPulse;
-  varying vec3 vNormal;
-
-  void main() {
-    float facing = pow(1.0 - abs(dot(normalize(vNormal), vec3(0.0, 0.0, 1.0))), 1.4);
-    float wave = 0.5 + 0.5 * sin(uTime * 2.0 + vPulse * 50.0);
-    vec3 color = mix(uColorA, uColorB, clamp(facing * 0.72 + wave * 0.28, 0.0, 1.0));
-    float alpha = 0.58 + facing * 0.35;
-    gl_FragColor = vec4(color, alpha);
-  }
-`
 
 const randomRange = (min, max) => min + Math.random() * (max - min)
 
@@ -50,112 +15,129 @@ export class SpatialArt {
     this.scene = scene
     this.group = null
     this.core = null
+    this.shell = null
     this.rings = []
     this.particles = null
-    this.uniforms = null
-    this.seed = Math.random() * 50
+    this.halo = null
     this.birthTime = performance.now() * 0.001
   }
 
   spawn(position) {
     this.dispose()
     this.birthTime = performance.now() * 0.001
-    this.seed = Math.random() * 50
 
     const palette = palettes[Math.floor(Math.random() * palettes.length)]
     const group = new THREE.Group()
     group.position.copy(position)
     group.scale.setScalar(0.001)
+    group.renderOrder = 100
 
-    this.uniforms = {
-      uTime: {value: 0},
-      uSeed: {value: this.seed},
-      uColorA: {value: new THREE.Color(palette[0])},
-      uColorB: {value: new THREE.Color(palette[1])},
-    }
-
-    const coreGeo = new THREE.IcosahedronGeometry(randomRange(0.34, 0.48), 5)
-    const coreMat = new THREE.ShaderMaterial({
-      uniforms: this.uniforms,
-      vertexShader,
-      fragmentShader,
+    // Opaque-ish luminous core: intentionally uses MeshBasicMaterial instead of
+    // a custom shader so the first visible baseline is robust across mobile GPUs.
+    const coreGeo = new THREE.IcosahedronGeometry(randomRange(0.42, 0.55), 4)
+    const coreMat = new THREE.MeshBasicMaterial({
+      color: palette[0],
       transparent: true,
+      opacity: 0.72,
+      wireframe: true,
       depthWrite: false,
-      side: THREE.DoubleSide,
+      depthTest: false,
       blending: THREE.AdditiveBlending,
     })
     const core = new THREE.Mesh(coreGeo, coreMat)
     core.rotation.set(Math.random(), Math.random(), Math.random())
+    core.renderOrder = 102
     group.add(core)
 
+    // A second distorted-looking shell gives the object visual mass even on a
+    // bright camera feed.
+    const shellGeo = new THREE.DodecahedronGeometry(randomRange(0.32, 0.43), 2)
+    const shellMat = new THREE.MeshBasicMaterial({
+      color: palette[1],
+      transparent: true,
+      opacity: 0.42,
+      wireframe: false,
+      depthWrite: false,
+      depthTest: false,
+      blending: THREE.AdditiveBlending,
+    })
+    const shell = new THREE.Mesh(shellGeo, shellMat)
+    shell.scale.set(0.78, 1.2, 0.86)
+    shell.renderOrder = 101
+    group.add(shell)
+
     this.rings = []
-    const ringCount = 3 + Math.floor(Math.random() * 3)
+    const ringCount = 4
     for (let i = 0; i < ringCount; i += 1) {
-      const radius = 0.58 + i * 0.16 + Math.random() * 0.08
-      const tube = 0.006 + Math.random() * 0.011
-      const geo = new THREE.TorusKnotGeometry(radius, tube, 150, 5, 2 + (i % 2), 3 + (i % 3))
+      const radius = 0.62 + i * 0.14
+      const tube = 0.008 + i * 0.0015
+      const geo = new THREE.TorusKnotGeometry(radius, tube, 120, 4, 2 + (i % 2), 3 + (i % 3))
       const mat = new THREE.MeshBasicMaterial({
         color: palette[i % 2],
         transparent: true,
-        opacity: 0.28 + Math.random() * 0.28,
+        opacity: 0.38,
         wireframe: true,
         depthWrite: false,
+        depthTest: false,
         blending: THREE.AdditiveBlending,
       })
       const mesh = new THREE.Mesh(geo, mat)
       mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI)
       mesh.userData.spin = new THREE.Vector3(
-        randomRange(-0.18, 0.18),
-        randomRange(-0.22, 0.22),
-        randomRange(-0.16, 0.16),
+        randomRange(-0.018, 0.018),
+        randomRange(-0.022, 0.022),
+        randomRange(-0.016, 0.016),
       )
       mesh.userData.phase = Math.random() * Math.PI * 2
+      mesh.renderOrder = 103 + i
       group.add(mesh)
       this.rings.push(mesh)
     }
 
-    const pointCount = 520
+    const pointCount = 650
     const positions = new Float32Array(pointCount * 3)
-    const scales = new Float32Array(pointCount)
     for (let i = 0; i < pointCount; i += 1) {
-      const r = randomRange(0.52, 1.2)
+      const r = randomRange(0.52, 1.22)
       const theta = Math.random() * Math.PI * 2
       const phi = Math.acos(randomRange(-1, 1))
       positions[i * 3] = r * Math.sin(phi) * Math.cos(theta)
-      positions[i * 3 + 1] = r * Math.cos(phi) * randomRange(0.65, 1.25)
+      positions[i * 3 + 1] = r * Math.cos(phi) * randomRange(0.7, 1.25)
       positions[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta)
-      scales[i] = randomRange(0.4, 1.6)
     }
     const pointsGeo = new THREE.BufferGeometry()
     pointsGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-    pointsGeo.setAttribute('aScale', new THREE.BufferAttribute(scales, 1))
     const pointsMat = new THREE.PointsMaterial({
       color: palette[2],
-      size: 0.018,
+      size: 0.026,
       sizeAttenuation: true,
       transparent: true,
-      opacity: 0.72,
+      opacity: 0.9,
       depthWrite: false,
+      depthTest: false,
       blending: THREE.AdditiveBlending,
     })
     const particles = new THREE.Points(pointsGeo, pointsMat)
+    particles.renderOrder = 110
     group.add(particles)
 
-    const haloGeo = new THREE.SphereGeometry(0.86, 32, 20)
+    const haloGeo = new THREE.SphereGeometry(0.92, 28, 18)
     const haloMat = new THREE.MeshBasicMaterial({
       color: palette[0],
       wireframe: true,
       transparent: true,
-      opacity: 0.07,
+      opacity: 0.14,
       depthWrite: false,
+      depthTest: false,
       blending: THREE.AdditiveBlending,
     })
     const halo = new THREE.Mesh(haloGeo, haloMat)
-    halo.scale.y = randomRange(0.7, 1.25)
+    halo.scale.y = randomRange(0.72, 1.22)
+    halo.renderOrder = 100
     group.add(halo)
 
     this.group = group
     this.core = core
+    this.shell = shell
     this.particles = particles
     this.halo = halo
     this.scene.add(group)
@@ -163,32 +145,38 @@ export class SpatialArt {
 
   update(nowSeconds) {
     if (!this.group) return
+
     const elapsed = nowSeconds - this.birthTime
-    const reveal = THREE.MathUtils.smoothstep(Math.min(elapsed / 1.25, 1), 0, 1)
-    const pulse = 1 + Math.sin(elapsed * 2.05) * 0.035
+    const t = Math.min(elapsed / 0.9, 1)
+    const reveal = t * t * (3 - 2 * t)
+    const pulse = 1 + Math.sin(elapsed * 2.2) * 0.045
     this.group.scale.setScalar(Math.max(0.001, reveal * pulse))
 
-    this.uniforms.uTime.value = elapsed
-    this.core.rotation.x += 0.0015
-    this.core.rotation.y += 0.0022
+    this.core.rotation.x += 0.0032
+    this.core.rotation.y += 0.0046
+    this.shell.rotation.x -= 0.0021
+    this.shell.rotation.z += 0.0035
+    this.shell.scale.x = 0.78 + Math.sin(elapsed * 1.7) * 0.07
+    this.shell.scale.y = 1.2 + Math.cos(elapsed * 1.35) * 0.1
 
     this.rings.forEach((ring, index) => {
       const spin = ring.userData.spin
-      ring.rotation.x += spin.x * 0.008
-      ring.rotation.y += spin.y * 0.008
-      ring.rotation.z += spin.z * 0.008
-      const wobble = 1 + Math.sin(elapsed * (0.8 + index * 0.11) + ring.userData.phase) * 0.05
+      ring.rotation.x += spin.x
+      ring.rotation.y += spin.y
+      ring.rotation.z += spin.z
+      const wobble = 1 + Math.sin(elapsed * (0.9 + index * 0.12) + ring.userData.phase) * 0.06
       ring.scale.setScalar(wobble)
     })
 
-    this.particles.rotation.y = elapsed * 0.08
-    this.particles.rotation.x = Math.sin(elapsed * 0.25) * 0.15
-    this.halo.rotation.y = -elapsed * 0.035
-    this.halo.rotation.z = elapsed * 0.02
+    this.particles.rotation.y = elapsed * 0.12
+    this.particles.rotation.x = Math.sin(elapsed * 0.32) * 0.18
+    this.halo.rotation.y = -elapsed * 0.055
+    this.halo.rotation.z = elapsed * 0.035
   }
 
   dispose() {
     if (!this.group) return
+
     this.scene.remove(this.group)
     this.group.traverse((obj) => {
       if (obj.geometry) obj.geometry.dispose()
@@ -197,9 +185,12 @@ export class SpatialArt {
         else obj.material.dispose()
       }
     })
+
     this.group = null
     this.core = null
+    this.shell = null
     this.particles = null
+    this.halo = null
     this.rings = []
   }
 }

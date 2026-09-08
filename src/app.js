@@ -1,5 +1,5 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.183.2/build/three.module.js'
-import {worldArtPipelineModule} from './world-art-module.js'
+import {worldArtPipelineModule} from './world-art-module.js?v=2'
 
 window.THREE = THREE
 

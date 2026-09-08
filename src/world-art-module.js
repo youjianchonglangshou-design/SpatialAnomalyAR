@@ -1,5 +1,5 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.183.2/build/three.module.js'
-import {SpatialArt} from './art-system.js'
+import {SpatialArt} from './art-system.js?v=2'
 
 const ui = {
   badge: () => document.getElementById('trackingBadge'),
@@ -18,74 +18,104 @@ export const worldArtPipelineModule = () => {
   let scene = null
   let camera = null
   let renderer = null
-  let lastPose = null
   let normalFrames = 0
   let placed = false
   let pendingRespawn = false
   let startedAt = performance.now()
+  let lastTrackingStatus = 'LIMITED'
+
+  const setText = (el, value) => {
+    if (el) el.textContent = value
+  }
 
   const setTrackingUI = (status = 'LIMITED', reason = 'INITIALIZING') => {
+    lastTrackingStatus = status || 'LIMITED'
     const badge = ui.badge()
     if (!badge) return
-    badge.textContent = status
-    badge.classList.toggle('normal', status === 'NORMAL')
-    badge.classList.toggle('limited', status !== 'NORMAL')
 
-    if (!placed) {
-      const pct = Math.min(100, Math.max(5, Math.round((normalFrames / 24) * 100)))
-      ui.meter().style.width = `${pct}%`
-      if (status === 'NORMAL') {
-        ui.title().textContent = '空間追蹤已鎖定'
-        ui.text().textContent = '保持鏡頭穩定一下，藝術體會在畫面中央前方生成。'
-      } else if (reason === 'INITIALIZING') {
-        ui.title().textContent = '正在建立空間座標'
-        ui.text().textContent = '請緩慢移動手機，讓鏡頭看到有紋理的地面、牆面或物件。'
-      } else {
-        ui.title().textContent = '追蹤訊號較弱'
-        ui.text().textContent = '避免純白牆、黑暗與快速晃動，慢慢掃描附近環境。'
-      }
+    badge.textContent = lastTrackingStatus
+    badge.classList.toggle('normal', lastTrackingStatus === 'NORMAL')
+    badge.classList.toggle('limited', lastTrackingStatus !== 'NORMAL')
+
+    if (placed) return
+
+    const meter = ui.meter()
+    if (meter) {
+      const pct = Math.min(100, Math.max(8, Math.round((normalFrames / 10) * 100)))
+      meter.style.width = `${pct}%`
+    }
+
+    if (lastTrackingStatus === 'NORMAL') {
+      setText(ui.title(), '空間追蹤已鎖定')
+      setText(ui.text(), '保持鏡頭穩定一下，藝術體正在固定到現實空間。')
+    } else if (reason === 'INITIALIZING') {
+      setText(ui.title(), '正在建立空間座標')
+      setText(ui.text(), '請緩慢左右移動手機，讓鏡頭看到地面、牆角、箱子等有細節的地方。')
+    } else {
+      setText(ui.title(), '追蹤訊號較弱')
+      setText(ui.text(), '請慢慢左右移動；避免只拍純白牆面或過暗區域。')
     }
   }
 
-  const computeAnchor = (pose) => {
-    const p = new THREE.Vector3(pose.position.x, pose.position.y, pose.position.z)
-    const q = new THREE.Quaternion(pose.rotation.x, pose.rotation.y, pose.rotation.z, pose.rotation.w)
-    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(q).normalize()
-    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(q).normalize()
+  // IMPORTANT: derive the anchor from the Three.js camera itself.
+  // XR8.Threejs.pipelineModule() has already mapped SLAM into this same scene,
+  // so this avoids mixing raw-reality coordinates with rendered scene coordinates.
+  const computeAnchorFromCamera = () => {
+    if (!camera) return null
 
-    const distance = 2.25 + Math.random() * 0.55
-    const anchor = p.clone().add(forward.multiplyScalar(distance))
-    anchor.add(right.multiplyScalar((Math.random() - 0.5) * 0.16))
-    anchor.y -= 0.08 + Math.random() * 0.14
+    camera.updateMatrixWorld(true)
+    const position = new THREE.Vector3()
+    const quaternion = new THREE.Quaternion()
+    camera.getWorldPosition(position)
+    camera.getWorldQuaternion(quaternion)
+
+    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(quaternion).normalize()
+    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(quaternion).normalize()
+
+    // Keep it close enough to be unmistakably visible in a small indoor room.
+    const distance = 1.55 + Math.random() * 0.25
+    const anchor = position.clone().add(forward.multiplyScalar(distance))
+    anchor.add(right.multiplyScalar((Math.random() - 0.5) * 0.12))
+    anchor.y -= 0.05
     return anchor
   }
 
   const placeArt = () => {
-    if (!lastPose || !art) return
-    const anchor = computeAnchor(lastPose)
+    if (!art || !camera) return
+    const anchor = computeAnchorFromCamera()
+    if (!anchor) return
+
     art.spawn(anchor)
     placed = true
     pendingRespawn = false
-    normalFrames = 24
+    normalFrames = 10
 
-    ui.reticle().classList.add('locked')
-    ui.panel().classList.add('done')
-    ui.controls().classList.remove('is-hidden')
+    ui.reticle()?.classList.add('locked')
+    ui.panel()?.classList.add('done')
+    ui.controls()?.classList.remove('is-hidden')
+    setText(ui.badge(), 'ANCHORED')
+    ui.badge()?.classList.add('normal')
+
     window.setTimeout(() => {
-      if (ui.panel()) ui.panel().style.display = 'none'
-    }, 450)
+      const panel = ui.panel()
+      if (panel && placed) panel.style.display = 'none'
+    }, 650)
   }
 
   const requestRespawn = () => {
+    art?.dispose()
     pendingRespawn = true
     placed = false
     normalFrames = 0
-    ui.panel().style.display = ''
-    ui.panel().classList.remove('done')
-    ui.reticle().classList.remove('locked')
-    ui.title().textContent = '選擇新的空間位置'
-    ui.text().textContent = '把鏡頭對準你想放置的位置，保持穩定。'
-    ui.meter().style.width = '10%'
+    const panel = ui.panel()
+    if (panel) {
+      panel.style.display = ''
+      panel.classList.remove('done')
+    }
+    ui.reticle()?.classList.remove('locked')
+    setText(ui.title(), '選擇新的空間位置')
+    setText(ui.text(), '把鏡頭朝向你想讓藝術出現的方向，慢慢移動手機。')
+    if (ui.meter()) ui.meter().style.width = '10%'
   }
 
   return {
@@ -101,8 +131,9 @@ export const worldArtPipelineModule = () => {
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
       scene.background = null
 
-      // 8th Wall requires the starting camera height to be above y=0.
-      camera.position.set(0, 1.55, 0)
+      // Match the canonical 8th Wall world-effects setup: start above y=0,
+      // then sync XR tracking to this scene origin.
+      camera.position.set(0, 1.6, 2)
       XR8.XrController.updateCameraProjectionMatrix({
         origin: camera.position,
         facing: camera.quaternion,
@@ -112,41 +143,50 @@ export const worldArtPipelineModule = () => {
       startedAt = performance.now()
 
       canvas.addEventListener('touchmove', (event) => event.preventDefault(), {passive: false})
-      ui.respawn().addEventListener('click', requestRespawn)
-      ui.recenter().addEventListener('click', () => {
+      ui.respawn()?.addEventListener('click', requestRespawn)
+      ui.recenter()?.addEventListener('click', () => {
         XR8.XrController.recenter()
         requestRespawn()
       })
+
+      setText(ui.badge(), 'CAMERA READY')
+    },
+
+    onCameraStatusChange: ({status}) => {
+      if (status === 'hasVideo') {
+        setText(ui.badge(), 'SCANNING')
+      }
     },
 
     onUpdate: ({processCpuResult}) => {
-      const reality = processCpuResult.reality
       const now = performance.now() * 0.001
       art?.update(now)
 
+      const reality = processCpuResult?.reality
       if (!reality) return
-      const {position, rotation, trackingStatus, trackingReason} = reality
-      if (position && rotation) lastPose = {position, rotation}
+
+      const {trackingStatus, trackingReason} = reality
       setTrackingUI(trackingStatus, trackingReason)
 
       if (trackingStatus === 'NORMAL') normalFrames += 1
-      else normalFrames = Math.max(0, normalFrames - 2)
+      else normalFrames = Math.max(0, normalFrames - 1)
 
-      if ((!placed || pendingRespawn) && normalFrames >= 24 && lastPose) {
+      // Shorter lock window than v1. Tracking must still be NORMAL, but the user
+      // no longer has to wait almost a full second after acquiring it.
+      if ((!placed || pendingRespawn) && normalFrames >= 10) {
         placeArt()
       }
 
-      // If tracking never becomes NORMAL, make the UI more explicit instead of silently hanging.
-      if (!placed && performance.now() - startedAt > 12000 && trackingStatus !== 'NORMAL') {
-        ui.title().textContent = '還沒有取得穩定追蹤'
-        ui.text().textContent = '請增加環境光線，並對著有細節的桌面、地板或街景緩慢左右移動。'
+      if (!placed && performance.now() - startedAt > 10000 && lastTrackingStatus !== 'NORMAL') {
+        setText(ui.title(), '還沒有取得空間鎖定')
+        setText(ui.text(), '鏡頭已正常。現在請拿著手機慢慢左右移動約 30～60 公分，不要只站著轉鏡頭。')
       }
     },
 
     listeners: [
       {
         event: 'reality.trackingstatus',
-        process: ({detail}) => setTrackingUI(detail.status, detail.reason),
+        process: ({detail}) => setTrackingUI(detail?.status, detail?.reason),
       },
     ],
   }

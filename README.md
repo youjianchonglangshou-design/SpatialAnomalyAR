@@ -75,3 +75,10 @@ Copyright © 2026 Niantic Spatial, Inc. All rights reserved.
 License: https://github.com/8thwall/engine/blob/main/LICENSE
 
 The application code in this repository is separate from the XR Engine binary loaded from jsDelivr.
+
+## V2 修正
+- 修正 AR canvas 蓋住 HUD 的 stacking / z-index 問題。
+- 錨點改由 `XR8.Threejs.xrScene().camera` 的世界座標直接計算，不再混用 raw reality pose。
+- 藝術體改用更保守的 Three.js 基礎材質作為可見基線，降低行動 GPU shader 差異。
+- NORMAL 追蹤後約 10 frames 自動放置，距離縮短至約 1.6m，室內更容易直接看到。
+- 頂部會顯示 `SPATIAL ANOMALY · V2`；若仍看到舊版，請重新整理頁面/清除快取。
