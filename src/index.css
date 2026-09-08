@@ -80,32 +80,35 @@ button { font: inherit; }
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 84px;
-  height: 84px;
+  width: 78px;
+  height: 78px;
   transform: translate(-50%, -50%);
   display: grid;
   place-items: center;
-  transition: opacity .35s ease, transform .35s ease;
+  transition: opacity .2s ease, width .2s ease, height .2s ease;
+  will-change: left, top;
 }
 
 .reticle-ring {
   position: absolute;
   inset: 0;
-  border: 1px solid rgba(255,255,255,.72);
+  border: 1px solid rgba(255,255,255,.78);
   border-radius: 50%;
-  box-shadow: inset 0 0 20px rgba(114,247,255,.16), 0 0 25px rgba(114,247,255,.14);
+  box-shadow: inset 0 0 20px rgba(114,247,255,.16), 0 0 25px rgba(114,247,255,.18);
   animation: breathe 2s ease-in-out infinite;
 }
 
 .reticle-ring::before, .reticle-ring::after {
   content: "";
   position: absolute;
-  background: rgba(255,255,255,.9);
+  background: rgba(255,255,255,.92);
 }
 .reticle-ring::before { width: 16px; height: 1px; left: 50%; top: 50%; transform: translate(-50%,-50%); }
 .reticle-ring::after { width: 1px; height: 16px; left: 50%; top: 50%; transform: translate(-50%,-50%); }
 .reticle-dot { width: 5px; height: 5px; border-radius: 50%; background: #fff; box-shadow: 0 0 13px #72f7ff; }
-.reticle.locked { opacity: .2; transform: translate(-50%,-50%) scale(.75); }
+.reticle.locked { width: 46px; height: 46px; opacity: .55; }
+.reticle.locked .reticle-ring { animation: none; border-color: rgba(114,247,255,.9); }
+.reticle.offscreen { opacity: 0; }
 
 .status-panel {
   position: absolute;
@@ -121,14 +124,19 @@ button { font: inherit; }
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   box-shadow: 0 15px 55px rgba(0,0,0,.28);
-  transition: opacity .35s ease, transform .35s ease;
+  transition: opacity .28s ease, transform .28s ease;
 }
 
 .status-panel.done { opacity: 0; transform: translateY(14px); }
 .status-title { font-size: 14px; font-weight: 800; letter-spacing: .02em; }
 .status-text { margin-top: 5px; font-size: 12px; line-height: 1.55; color: rgba(245,250,255,.72); }
-.meter { height: 3px; margin-top: 12px; border-radius: 999px; background: rgba(255,255,255,.12); overflow: hidden; }
-.meter span { display: block; width: 5%; height: 100%; border-radius: inherit; background: linear-gradient(90deg,#72f7ff,#d78cff); transition: width .18s ease; }
+.placement-hint {
+  margin-top: 11px;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .16em;
+  color: #8ef8ff;
+}
 
 .controls {
   position: absolute;

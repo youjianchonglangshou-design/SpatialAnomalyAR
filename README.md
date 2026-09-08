@@ -1,92 +1,31 @@
-# Spatial Anomaly AR
+# Spatial Anomaly AR — V4 Tap-to-Place
 
-跨 **iPhone / Android** 的純前端 WebAR 空間錨定生成藝術原型。這版不需要 Python、Node.js 或 npm；GitHub Pages 直接就能部署。
+這是一個可部署到 GitHub Pages 的跨平台 WebAR 原型，核心為 8th Wall Engine + Three.js。
 
-## 這版會做什麼
+## V4 的主要改動
 
-1. 開啟手機鏡頭。
-2. 使用 8th Wall SLAM 建立 6DoF 世界追蹤。
-3. 當追蹤穩定後，在鏡頭中央前方約 2.3～2.8 公尺建立一次性的世界座標。
-4. 在該座標生成隨機 3D 藝術體：扭曲核心、線圈、粒子、光暈都會持續動畫。
-5. 你之後移動手機，藝術體本身的 world position 不再跟著手機更新，因此會呈現「留在原地」的視差效果。
-6. 可按「重新生成」把新的藝術體放到目前鏡頭前方；「重設定位」會 recenter 後再選新位置。
+- 不再等待 `trackingStatus === NORMAL` 才生成。
+- 不再要求先左右移動手機 30～60 公分。
+- 直接點畫面中的地面／空間位置，程式會用 `XR8.XrController.hitTest()` 嘗試取得該點的 3D 世界座標。
+- 若 hit test 暫時沒有結果，會立刻使用地面交點或畫面射線作為 fallback，因此不會一直卡在「等待空間鎖定」。
+- 生成後的藝術體固定在該世界座標；鏡頭移動時不會跟著螢幕移動。
+- 「換一種藝術」只改視覺，不改位置。
+- 「重新選位置」才會清除舊位置，讓你再點一次。
+- V4 將藝術體尺寸縮小，避免 V3 一生成就貼得太近、塞滿整個畫面。
 
-## 手機需求
+## 使用方式
 
-- iPhone：Safari，建議 iOS 16.4 以上。
-- Android：Chrome / Edge / Samsung Internet / Firefox。
-- 必須使用 HTTPS。GitHub Pages 本身就是 HTTPS。
-- 環境需有足夠光線與可追蹤的視覺細節；純白牆、黑暗、快速晃動都會降低 SLAM 穩定性。
+1. 將本專案所有檔案上傳到 GitHub repository 根目錄。
+2. GitHub → Settings → Pages → Source 選 `GitHub Actions`。
+3. 等 workflow 部署完成。
+4. 用 Android Chrome 或 iPhone Safari 開啟 Pages 網址並允許相機。
+5. 直接點畫面中你想生成的位置。
+6. 生成後移動手機，觀察物件是否留在原位置。
 
-## 上傳 GitHub
+## 注意
 
-1. 建立新的 GitHub repository。
-2. 把這個資料夾內的 **所有檔案與資料夾** 上傳到 repository 根目錄，branch 使用 `main`。
-3. GitHub → **Settings → Pages → Build and deployment → Source** 選 **GitHub Actions**。
-4. `.github/workflows/deploy-pages.yml` 會自動部署。
-5. Actions 完成後，用手機開啟 Pages 網址：`https://<帳號>.github.io/<repo>/`
-6. 第一次開啟時允許相機權限。
+真正的空間固定仍依賴 SLAM。V4 把「等待 SLAM 完全穩定」從放置流程移除，因此可以立刻點位置；如果環境太暗、表面完全沒有細節或 SLAM 尚未穩定，最初幾秒可能會有少量漂移。地面有裂紋、黑白細節、箱子邊角等通常會更穩。
 
-> 不要直接在手機用 `file://` 雙擊 index.html 測試。相機 WebAR 需要 HTTPS。
+## GitHub Pages
 
-## 專案結構
-
-```text
-SpatialAnomalyAR/
-├─ .github/
-│  └─ workflows/
-│     └─ deploy-pages.yml
-├─ index.html
-├─ README.md
-└─ src/
-   ├─ app.js
-   ├─ world-art-module.js
-   ├─ art-system.js
-   └─ index.css
-```
-
-## 核心邏輯
-
-真正讓藝術「留在原地」的是 `src/world-art-module.js`：
-
-- 等 `trackingStatus === 'NORMAL'`。
-- 讀取一次手機的世界 `position + rotation`。
-- 用鏡頭 forward vector 算出前方 anchor。
-- 呼叫 `art.spawn(anchor)`。
-- 之後只更新藝術內部的 shader / rotation / particle animation，**不再更新 anchor 的 world position**。
-
-因此手機移動時，畫面中的藝術會自然產生視差，而不是像濾鏡一樣黏著螢幕。
-
-## 外部程式庫
-
-本專案直接由 CDN 載入：
-
-- 8th Wall XR Engine binary（SLAM）
-- XR Extras
-- 8th Wall Landing Page helper
-- Three.js 0.183.2
-
-所以 GitHub repository 本身不需要放 `node_modules` 或 proprietary engine binary。
-
-## 8th Wall / Niantic Spatial notice
-
-This product includes the XR Engine software developed by Niantic Spatial, Inc.  
-Copyright © 2026 Niantic Spatial, Inc. All rights reserved.  
-License: https://github.com/8thwall/engine/blob/main/LICENSE
-
-The application code in this repository is separate from the XR Engine binary loaded from jsDelivr.
-
-## V3 修正
-- 修正 AR canvas 蓋住 HUD 的 stacking / z-index 問題。
-- 錨點改由 `XR8.Threejs.xrScene().camera` 的世界座標直接計算，不再混用 raw reality pose。
-- 藝術體改用更保守的 Three.js 基礎材質作為可見基線，降低行動 GPU shader 差異。
-- NORMAL 追蹤後約 10 frames 自動放置，距離縮短至約 1.6m，室內更容易直接看到。
-- 頂部會顯示 `SPATIAL ANOMALY · V3`；若仍看到舊版，請重新整理頁面/清除快取。
-
-
-## V3 修正
-
-- 移除 `@8thwall/landing-page` 與 `LandingPage.pipelineModule()`。
-- 移除 XRExtras Loading overlay，避免第三方畫面覆蓋自訂 HUD。
-- 手機載入後直接啟動 AR 流程，不再先跳 8th Wall QR landing page。
-- 桌面瀏覽器不再由 LandingPage 強制顯示 QR；若裝置不支援 AR，會由 RuntimeError / 自訂錯誤提示處理。
+此 repo 已包含 `.github/workflows/deploy-pages.yml`，不需要 Node、npm 或 Python。

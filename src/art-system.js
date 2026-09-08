@@ -20,11 +20,13 @@ export class SpatialArt {
     this.particles = null
     this.halo = null
     this.birthTime = performance.now() * 0.001
+    this.baseScale = 0.42
   }
 
-  spawn(position) {
+  spawn(position, {scale = 0.42} = {}) {
     this.dispose()
     this.birthTime = performance.now() * 0.001
+    this.baseScale = scale
 
     const palette = palettes[Math.floor(Math.random() * palettes.length)]
     const group = new THREE.Group()
@@ -32,8 +34,6 @@ export class SpatialArt {
     group.scale.setScalar(0.001)
     group.renderOrder = 100
 
-    // Opaque-ish luminous core: intentionally uses MeshBasicMaterial instead of
-    // a custom shader so the first visible baseline is robust across mobile GPUs.
     const coreGeo = new THREE.IcosahedronGeometry(randomRange(0.42, 0.55), 4)
     const coreMat = new THREE.MeshBasicMaterial({
       color: palette[0],
@@ -49,8 +49,6 @@ export class SpatialArt {
     core.renderOrder = 102
     group.add(core)
 
-    // A second distorted-looking shell gives the object visual mass even on a
-    // bright camera feed.
     const shellGeo = new THREE.DodecahedronGeometry(randomRange(0.32, 0.43), 2)
     const shellMat = new THREE.MeshBasicMaterial({
       color: palette[1],
@@ -94,7 +92,7 @@ export class SpatialArt {
       this.rings.push(mesh)
     }
 
-    const pointCount = 650
+    const pointCount = 520
     const positions = new Float32Array(pointCount * 3)
     for (let i = 0; i < pointCount; i += 1) {
       const r = randomRange(0.52, 1.22)
@@ -147,10 +145,10 @@ export class SpatialArt {
     if (!this.group) return
 
     const elapsed = nowSeconds - this.birthTime
-    const t = Math.min(elapsed / 0.9, 1)
+    const t = Math.min(elapsed / 0.75, 1)
     const reveal = t * t * (3 - 2 * t)
     const pulse = 1 + Math.sin(elapsed * 2.2) * 0.045
-    this.group.scale.setScalar(Math.max(0.001, reveal * pulse))
+    this.group.scale.setScalar(Math.max(0.001, this.baseScale * reveal * pulse))
 
     this.core.rotation.x += 0.0032
     this.core.rotation.y += 0.0046
