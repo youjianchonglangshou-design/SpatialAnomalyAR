@@ -1,5 +1,5 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.183.2/build/three.module.js'
-import {worldArtPipelineModule} from './world-art-module.js?v=5'
+import {worldArtPipelineModule} from './world-art-module.js?v=6'
 
 window.THREE = THREE
 
@@ -74,10 +74,15 @@ const startXR = () => {
       scale: 'absolute',
     })
 
+    if (!window.XRExtras?.FullWindowCanvas?.pipelineModule) {
+      throw new Error('XRExtras FullWindowCanvas 未載入')
+    }
+
     XR8.addCameraPipelineModules([
       XR8.GlTextureRenderer.pipelineModule(),
       XR8.Threejs.pipelineModule(),
       XR8.XrController.pipelineModule(),
+      XRExtras.FullWindowCanvas.pipelineModule(),
       cameraLifecyclePipelineModule(),
       worldArtPipelineModule(),
     ])

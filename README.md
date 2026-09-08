@@ -1,3 +1,7 @@
+# Spatial Anomaly AR — V6
+
+V6 only restores the 8th Wall `XRExtras.FullWindowCanvas` sizing module so the live camera feed fills the mobile viewport correctly. Camera startup and tap-to-place logic remain based on V5/V4.
+
 # Spatial Anomaly AR V5
 
 跨 Android / iPhone 的 WebAR 空間生成藝術原型。
