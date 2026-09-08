@@ -1,5 +1,5 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.183.2/build/three.module.js'
-import {SpatialArt} from './art-system.js?v=4'
+import {SpatialArt} from './art-system.js?v=5'
 
 const ui = {
   badge: () => document.getElementById('trackingBadge'),

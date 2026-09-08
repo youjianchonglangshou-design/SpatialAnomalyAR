@@ -17,11 +17,7 @@
     async
     crossorigin="anonymous"
     data-preload-chunks="slam"></script>
-  <script
-    src="https://cdn.jsdelivr.net/npm/@8thwall/xrextras@1/dist/xrextras.js"
-    crossorigin="anonymous"></script>
-
-  <link rel="stylesheet" href="./src/index.css?v=4" />
+  <link rel="stylesheet" href="./src/index.css?v=5" />
 </head>
 <body>
   <canvas id="camerafeed" aria-label="AR camera"></canvas>
@@ -30,9 +26,9 @@
     <div class="topbar">
       <div class="brand">
         <span class="dot"></span>
-        <span>SPATIAL ANOMALY · V4</span>
+        <span>SPATIAL ANOMALY · V5</span>
       </div>
-      <div id="trackingBadge" class="badge">STARTING</div>
+      <div id="trackingBadge" class="badge">LOADING XR</div>
     </div>
 
     <div id="reticle" class="reticle" aria-hidden="true">
@@ -41,8 +37,8 @@
     </div>
 
     <div id="statusPanel" class="status-panel">
-      <div id="statusTitle" class="status-title">點一下你要生成的位置</div>
-      <div id="statusText" class="status-text">直接點畫面中的地面或空間位置。這一版不再要求先左右移動 30～60 公分。</div>
+      <div id="statusTitle" class="status-title">正在載入 AR 引擎</div>
+      <div id="statusText" class="status-text">相機還沒有開始。引擎就緒後會自動要求相機權限。</div>
       <div class="placement-hint">TAP TO PLACE</div>
     </div>
 
@@ -58,9 +54,10 @@
     <div class="fatal-card">
       <h1>無法啟動 AR</h1>
       <p id="fatalText">請使用支援的手機瀏覽器，並確認已允許相機權限。</p>
+      <button id="retryButton" type="button" class="retry-button">重新啟動</button>
     </div>
   </div>
 
-  <script type="module" src="./src/app.js?v=4"></script>
+  <script type="module" src="./src/app.js?v=5"></script>
 </body>
 </html>

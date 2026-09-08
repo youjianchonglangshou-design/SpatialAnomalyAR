@@ -200,3 +200,16 @@ button { font: inherit; }
   .hud { padding-left: 24px; padding-right: 24px; }
   .status-panel { left: 24px; right: auto; width: 390px; margin: 0; }
 }
+
+.retry-button {
+  margin-top: 16px;
+  appearance: none;
+  border: 1px solid rgba(255,255,255,.25);
+  border-radius: 12px;
+  min-height: 44px;
+  padding: 0 18px;
+  background: rgba(224,252,255,.96);
+  color: #061019;
+  font-weight: 800;
+  pointer-events: auto;
+}
