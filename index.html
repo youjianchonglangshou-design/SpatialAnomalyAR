@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#05070c" />
+  <title>Spatial Anomaly AR</title>
+  <meta name="description" content="跨 iPhone / Android 的 WebAR 空間錨定生成藝術實驗。" />
+
+  <!--
+    This product includes the XR Engine software developed by Niantic Spatial, Inc.
+    Copyright © 2026 Niantic Spatial, Inc. All rights reserved.
+    License: https://github.com/8thwall/engine/blob/main/LICENSE
+  -->
+  <script
+    src="https://cdn.jsdelivr.net/npm/@8thwall/engine-binary@1/dist/xr.js"
+    async
+    crossorigin="anonymous"
+    data-preload-chunks="slam"></script>
+  <script
+    src="https://cdn.jsdelivr.net/npm/@8thwall/xrextras@1/dist/xrextras.js"
+    crossorigin="anonymous"></script>
+  <script
+    src="https://cdn.jsdelivr.net/npm/@8thwall/landing-page@1/dist/landing-page.js"
+    crossorigin="anonymous"></script>
+
+  <link rel="stylesheet" href="./src/index.css" />
+</head>
+<body>
+  <canvas id="camerafeed" aria-label="AR camera"></canvas>
+
+  <div id="hud" class="hud">
+    <div class="topbar">
+      <div class="brand">
+        <span class="dot"></span>
+        <span>SPATIAL ANOMALY</span>
+      </div>
+      <div id="trackingBadge" class="badge">INITIALIZING</div>
+    </div>
+
+    <div id="reticle" class="reticle" aria-hidden="true">
+      <span class="reticle-ring"></span>
+      <span class="reticle-dot"></span>
+    </div>
+
+    <div id="statusPanel" class="status-panel">
+      <div id="statusTitle" class="status-title">正在建立空間座標</div>
+      <div id="statusText" class="status-text">請緩慢移動手機，讓鏡頭看到有紋理的地面、牆面或物件。</div>
+      <div class="meter"><span id="meterFill"></span></div>
+    </div>
+
+    <div id="controls" class="controls is-hidden">
+      <button id="respawnButton" type="button">重新生成</button>
+      <button id="recenterButton" type="button" class="secondary">重設定位</button>
+    </div>
+
+    <div class="footer-note">移動手機觀察視差；藝術體應留在原本的世界位置。</div>
+  </div>
+
+  <div id="fatal" class="fatal is-hidden">
+    <div class="fatal-card">
+      <h1>無法啟動 AR</h1>
+      <p id="fatalText">請使用支援的手機瀏覽器，並確認已允許相機權限。</p>
+    </div>
+  </div>
+
+  <script type="module" src="./src/app.js"></script>
+</body>
+</html>
