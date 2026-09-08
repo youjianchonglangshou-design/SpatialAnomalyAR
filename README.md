@@ -76,9 +76,17 @@ License: https://github.com/8thwall/engine/blob/main/LICENSE
 
 The application code in this repository is separate from the XR Engine binary loaded from jsDelivr.
 
-## V2 修正
+## V3 修正
 - 修正 AR canvas 蓋住 HUD 的 stacking / z-index 問題。
 - 錨點改由 `XR8.Threejs.xrScene().camera` 的世界座標直接計算，不再混用 raw reality pose。
 - 藝術體改用更保守的 Three.js 基礎材質作為可見基線，降低行動 GPU shader 差異。
 - NORMAL 追蹤後約 10 frames 自動放置，距離縮短至約 1.6m，室內更容易直接看到。
-- 頂部會顯示 `SPATIAL ANOMALY · V2`；若仍看到舊版，請重新整理頁面/清除快取。
+- 頂部會顯示 `SPATIAL ANOMALY · V3`；若仍看到舊版，請重新整理頁面/清除快取。
+
+
+## V3 修正
+
+- 移除 `@8thwall/landing-page` 與 `LandingPage.pipelineModule()`。
+- 移除 XRExtras Loading overlay，避免第三方畫面覆蓋自訂 HUD。
+- 手機載入後直接啟動 AR 流程，不再先跳 8th Wall QR landing page。
+- 桌面瀏覽器不再由 LandingPage 強制顯示 QR；若裝置不支援 AR，會由 RuntimeError / 自訂錯誤提示處理。

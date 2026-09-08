@@ -1,5 +1,5 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.183.2/build/three.module.js'
-import {worldArtPipelineModule} from './world-art-module.js?v=2'
+import {worldArtPipelineModule} from './world-art-module.js?v=3'
 
 window.THREE = THREE
 
@@ -23,9 +23,7 @@ const startXR = () => {
       XR8.GlTextureRenderer.pipelineModule(),
       XR8.Threejs.pipelineModule(),
       XR8.XrController.pipelineModule(),
-      LandingPage.pipelineModule(),
       XRExtras.FullWindowCanvas.pipelineModule(),
-      XRExtras.Loading.pipelineModule(),
       XRExtras.RuntimeError.pipelineModule(),
       worldArtPipelineModule(),
     ])
